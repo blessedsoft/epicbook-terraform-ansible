@@ -170,7 +170,7 @@ terraform destroy -var-file="envs/dev.tfvars" -auto-approve
 ## 👨‍💻 Author
 
 **Blessedsoft DevOps**  
-📧 your-email@example.com  
+📧 olajidesolomon11@gmail.com  
 🌐 [https://github.com/blessedsoft](https://github.com/blessedsoft)
 
 ---
