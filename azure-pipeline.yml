@@ -68,12 +68,12 @@ stages:
           - script: |
               echo "Getting VM public IP from Terraform output..."
               VM_PUBLIC_IP=$(terraform output -raw app_public_ip)
-              echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_PUBLIC_IP"
+              echo "##vso[task.setvariable variable=app_public_ip;isOutput=true]$VM_PUBLIC_IP"
               echo "VM Public IP: $VM_PUBLIC_IP"
 
               echo "Getting DB host from Terraform output..."
               DB_HOST=$(terraform output -raw db_host)
               echo "##vso[task.setvariable variable=db_host;isOutput=true]$DB_HOST"
               echo "DB Host: $DB_HOST"
-            workingDirectory: $(System.DefaultWorkingDirectory)/terraform
+            workingDirectory: $(System.DefaultWorkingDirectory)
             displayName: 'VM Public IP and DB Host'
