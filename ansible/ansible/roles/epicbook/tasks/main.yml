@@ -1,0 +1,233 @@
+---
+# ====================================================
+# EpicBook Role — deploy full app (frontend + backend)
+# ====================================================
+
+- name: Ensure app directory exists
+  file:
+    path: /var/www/epicbook
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+# Fix Git "dubious ownership" issue (run as root)
+- name: Allow /var/www/epicbook as a safe Git directory
+  command: git config --global --add safe.directory /var/www/epicbook
+  ignore_errors: true
+
+# -------------------------------
+# Clone the repo (public GitHub)
+# -------------------------------
+- name: Clone theepicbook repository
+  git:
+    repo: https://github.com/pravinmishraaws/theepicbook.git
+    dest: /var/www/epicbook
+    version: HEAD
+    force: yes
+    update: yes
+
+# Fix ownership (so nginx and node can read/write)
+- name: Ensure /var/www/epicbook ownership and permissions
+  file:
+    path: /var/www/epicbook
+    owner: www-data
+    group: www-data
+    recurse: yes
+    mode: '0755'
+
+# -------------------------------
+# Install Node.js and npm
+# -------------------------------
+- name: Add NodeSource repository
+  shell: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+
+- name: Install Node.js and npm
+  apt:
+    name:
+      - nodejs
+      - build-essential
+    state: present
+    update_cache: yes
+
+- name: Verify Node.js installation
+  command: node -v
+  register: node_version
+  changed_when: false
+  ignore_errors: yes
+
+- name: Verify npm installation
+  command: npm -v
+  register: npm_version
+  changed_when: false
+  ignore_errors: yes
+
+- name: Show Node.js and npm versions
+  debug:
+    msg:
+      - "Node.js version: {{ node_version.stdout | default('not installed') }}"
+      - "npm version: {{ npm_version.stdout | default('not installed') }}"
+
+# ====================================================
+# EpicBook Role — deploy Node.js Express app
+# ====================================================
+
+- name: Ensure app directory exists
+  file:
+    path: /var/www/epicbook
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Allow /var/www/epicbook as a safe Git directory
+  command: git config --global --add safe.directory /var/www/epicbook
+  become: true
+  ignore_errors: yes
+
+- name: Clone theepicbook repository
+  git:
+    repo: https://github.com/pravinmishraaws/theepicbook.git
+    dest: /var/www/epicbook
+    version: HEAD
+    force: yes
+    update: yes
+
+- name: Ensure /var/www/epicbook ownership and permissions
+  file:
+    path: /var/www/epicbook
+    state: directory
+    recurse: yes
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+# -------------------------------
+# Install Node.js and npm
+# -------------------------------
+- name: Add NodeSource repository
+  shell: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+
+- name: Install Node.js and npm
+  apt:
+    name:
+      - nodejs
+      - build-essential
+    state: present
+    update_cache: yes
+
+- name: Show Node.js and npm versions
+  command: npm -v
+  register: npm_version
+  changed_when: false
+  ignore_errors: yes
+
+- debug:
+    msg: "npm version: {{ npm_version.stdout }}"
+
+# -------------------------------
+# Install app dependencies
+# -------------------------------
+- name: Install backend dependencies
+  npm:
+    path: /var/www/epicbook
+    production: true
+
+# Ensure backend config directory exists
+- name: Ensure backend config directory exists
+  file:
+    path: /var/www/epicbook/backend/config
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+# Configure database credentials
+- name: Configure database credentials
+  template:
+    src: config.json.j2
+    dest: /var/www/epicbook/backend/config/config.json
+    owner: www-data
+    group: www-data
+    mode: '0644'
+
+
+# -------------------------------
+# Create systemd service for EpicBook
+# -------------------------------
+- name: Create systemd service for EpicBook
+  copy:
+    dest: /etc/systemd/system/epicbook.service
+    content: |
+      [Unit]
+      Description=EpicBook Node.js App
+      After=network.target
+
+      [Service]
+      Type=simple
+      WorkingDirectory=/var/www/epicbook
+      ExecStart=/usr/bin/node server.js
+      Restart=always
+      User=www-data
+      Environment=NODE_ENV=production
+      StandardOutput=syslog
+      StandardError=syslog
+      SyslogIdentifier=epicbook
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Restart EpicBook backend
+
+# -------------------------------
+# Reload nginx
+# -------------------------------
+- name: Reload nginx to serve new build
+  service:
+    name: nginx
+    state: reloaded
+
+
+# -------------------------------
+# Configure DB connection
+# -------------------------------
+- name: Configure database credentials
+  template:
+    src: config.json.j2
+    dest: /var/www/epicbook/backend/config/config.json
+    owner: www-data
+    group: www-data
+    mode: '0644'
+
+# -------------------------------
+# Enable backend as a service
+# -------------------------------
+- name: Create systemd service for EpicBook backend
+  copy:
+    dest: /etc/systemd/system/epicbook.service
+    content: |
+      [Unit]
+      Description=EpicBook Node.js Backend
+      After=network.target
+
+      [Service]
+      Type=simple
+      WorkingDirectory=/var/www/epicbook/backend
+      ExecStart=/usr/bin/node server.js
+      Restart=always
+      User=www-data
+      Environment=NODE_ENV=production
+      StandardOutput=syslog
+      StandardError=syslog
+      SyslogIdentifier=epicbook
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Restart EpicBook backend
+
+# -------------------------------
+# Reload nginx for new static files
+# -------------------------------
+- name: Reload nginx to serve new build
+  service:
+    name: nginx
+    state: reloaded

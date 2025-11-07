@@ -1,0 +1,29 @@
+---
+- name: Ensure apt cache is fresh
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Upgrade packages
+  apt:
+    upgrade: dist
+
+- name: Install baseline packages
+  apt:
+    name:
+      - git
+      - curl
+      - build-essential
+      - ca-certificates
+      - rsync
+      - ufw
+    state: present
+
+- name: Allow SSH and HTTP through UFW
+  ufw:
+    rule: allow
+    name: "{{ item }}"
+  loop:
+    - OpenSSH
+    - 'Nginx Full'
+  when: ansible_facts['distribution'] == "Ubuntu"

@@ -1,0 +1,13 @@
+---
+app_repo: "https://github.com/pravinmishraaws/theepicbook.git"
+app_dest: "/var/www/epicbook"
+frontend_dir: "/home/azureuser/theepicbook"
+backend_port: 3001
+
+# Database values (to be updated by terraform local_file or manually)
+db_host: "epicbook-mysql-dev-3b0yg.mysql.database.azure.com"
+db_username: "devepicuser@epicbook-mysql-dev-3b0yg"
+db_password: "DevStrongPassword123!"
+db_name: "epicbook"
+db_port: 3306
+db_ssl: true
