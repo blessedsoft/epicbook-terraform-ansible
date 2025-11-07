@@ -18,13 +18,18 @@ stages:
         steps:
 
           # --------------------------------------------------------------------
-          # Step 1: Setup Terraform Backend
+          # Step 1: Setup Terraform Backend (non-interactive)
           # --------------------------------------------------------------------
-          - script: |
-              echo "Running Terraform backend setup..."
-              chmod +x setup-tf-backend.sh
-              ./setup-tf-backend.sh
-            workingDirectory: $(System.DefaultWorkingDirectory)
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'it-azure-connection'  # service connection
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: $(System.DefaultWorkingDirectory)
+              inlineScript: |
+                echo "Running Terraform backend setup..."
+                chmod +x setup-tf-backend.sh
+                ./setup-tf-backend.sh
             displayName: 'Setup Terraform Backend'
 
           # --------------------------------------------------------------------
@@ -52,7 +57,7 @@ stages:
           # --------------------------------------------------------------------
           - task: AzureCLI@2
             inputs:
-              azureSubscription: 'it-azure-connection'
+              azureSubscription: 'it-azure-connection'  # service connection
               scriptType: bash
               scriptLocation: inlineScript
               workingDirectory: $(System.DefaultWorkingDirectory)/terraform
@@ -62,9 +67,10 @@ stages:
                 terraform plan -input=false -var-file="envs/dev.tfvars"
                 terraform apply -input=false -auto-approve -var-file="envs/dev.tfvars"
                 echo "##[endgroup]"
+            displayName: 'Terraform Apply'
 
           # --------------------------------------------------------------------
-          # Optional Step: Output VM public IP for downstream pipelines
+          # Step 4: Output VM public IP for downstream pipelines
           # --------------------------------------------------------------------
           - script: |
               echo "Getting VM public IP from Terraform output..."
