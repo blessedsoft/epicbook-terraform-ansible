@@ -24,7 +24,7 @@ stages:
               echo "Running Terraform backend setup..."
               chmod +x setup-tf-backend.sh
               ./setup-tf-backend.sh
-            workingDirectory: $(System.DefaultWorkingDirectory)/terraform
+            workingDirectory: $(System.DefaultWorkingDirectory)
             displayName: 'Setup Terraform Backend'
 
           # --------------------------------------------------------------------
