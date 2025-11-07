@@ -8,67 +8,68 @@ trigger:
 
 stages:
 
-- stage: Terraform
-  displayName: 'Provision Infrastructure'
-  jobs:
-    - job: Terraform_Apply
-      displayName: 'Terraform Apply'
-      pool:
-        name: 'linux-hosted-agent'
-      steps:
+  - stage: Terraform
+    displayName: 'Provision Infrastructure'
+    jobs:
+      - job: Terraform_Apply
+        displayName: 'Terraform Apply'
+        pool:
+          name: 'linux-hosted-agent'
+        steps:
 
-        # --------------------------------------------------------------------
-        # Step 1: Setup Terraform Backend
-        # --------------------------------------------------------------------
-        - script: |
-            echo "Running Terraform backend setup..."
-            chmod +x ./terraform/setup-tf-backend.sh
-            ./terraform/setup-tf-backend.sh
-          displayName: 'Setup Terraform Backend'
-
-        # --------------------------------------------------------------------
-        # Step 2: Download SSH public key for Terraform modules
-        # --------------------------------------------------------------------
-        - task: DownloadSecureFile@1
-          name: download_ssh_key
-          inputs:
-            secureFile: 'azure_rsa.pub'
-
-        - script: |
-            echo "Copying SSH public key into Terraform module..."
-            mkdir -p ~/.ssh
-            cp $(download_ssh_key.secureFilePath) ~/.ssh/azure_rsa.pub
-
-            # Copy into Terraform module path
-            cp $(download_ssh_key.secureFilePath) terraform/modules/compute/azure_rsa.pub
-
-            echo "Listing contents of terraform/modules/compute/"
-            ls -al terraform/modules/compute/
-          displayName: 'Extract SSH Public Key for Terraform'
-
-        # --------------------------------------------------------------------
-        # Step 3: Terraform Init / Plan / Apply
-        # --------------------------------------------------------------------
-        - task: AzureCLI@2
-          inputs:
-            azureSubscription: 'it-azure-connection'
-            scriptType: bash
-            scriptLocation: inlineScript
+          # --------------------------------------------------------------------
+          # Step 1: Setup Terraform Backend
+          # --------------------------------------------------------------------
+          - script: |
+              echo "Running Terraform backend setup..."
+              chmod +x setup-tf-backend.sh
+              ./setup-tf-backend.sh
             workingDirectory: $(System.DefaultWorkingDirectory)/terraform
-            inlineScript: |
-              echo "##[group]Terraform Init / Plan / Apply"
-              terraform init -input=false
-              terraform plan -input=false -var-file="envs/dev.tfvars"
-              terraform apply -input=false -auto-approve -var-file="envs/dev.tfvars"
-              echo "##[endgroup]"
+            displayName: 'Setup Terraform Backend'
 
-        # --------------------------------------------------------------------
-        # Optional Step: Output VM public IP for downstream pipelines
-        # --------------------------------------------------------------------
-        - script: |
-            echo "Getting VM public IP from Terraform output..."
-            VM_PUBLIC_IP=$(terraform output -raw vm_public_ip)
-            echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_PUBLIC_IP"
-            echo "VM Public IP: $VM_PUBLIC_IP"
-          workingDirectory: $(System.DefaultWorkingDirectory)/terraform
-          displayName: 'VM Public IP'
+          # --------------------------------------------------------------------
+          # Step 2: Download SSH public key for Terraform modules
+          # --------------------------------------------------------------------
+          - task: DownloadSecureFile@1
+            name: download_ssh_key
+            inputs:
+              secureFile: 'azure_rsa.pub'
+
+          - script: |
+              echo "Copying SSH public key into Terraform module..."
+              mkdir -p ~/.ssh
+              cp $(download_ssh_key.secureFilePath) ~/.ssh/azure_rsa.pub
+
+              # Copy into Terraform module path
+              cp $(download_ssh_key.secureFilePath) terraform/modules/compute/azure_rsa.pub
+
+              echo "Listing contents of terraform/modules/compute/"
+              ls -al terraform/modules/compute/
+            displayName: 'Extract SSH Public Key for Terraform'
+
+          # --------------------------------------------------------------------
+          # Step 3: Terraform Init / Plan / Apply
+          # --------------------------------------------------------------------
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'it-azure-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: $(System.DefaultWorkingDirectory)/terraform
+              inlineScript: |
+                echo "##[group]Terraform Init / Plan / Apply"
+                terraform init -input=false
+                terraform plan -input=false -var-file="envs/dev.tfvars"
+                terraform apply -input=false -auto-approve -var-file="envs/dev.tfvars"
+                echo "##[endgroup]"
+
+          # --------------------------------------------------------------------
+          # Optional Step: Output VM public IP for downstream pipelines
+          # --------------------------------------------------------------------
+          - script: |
+              echo "Getting VM public IP from Terraform output..."
+              VM_PUBLIC_IP=$(terraform output -raw vm_public_ip)
+              echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_PUBLIC_IP"
+              echo "VM Public IP: $VM_PUBLIC_IP"
+            workingDirectory: $(System.DefaultWorkingDirectory)/terraform
+            displayName: 'VM Public IP'
