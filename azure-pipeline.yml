@@ -42,7 +42,7 @@ stages:
 
               # Ensure module folder exists
               mkdir -p terraform/modules/compute
-              cp $(download_ssh_key.secureFilePath) terraform/modules/compute/azure_rsa.pub
+              cp $(download_ssh_key.secureFilePath) modules/compute/azure_rsa.pub
 
               echo "Listing contents of terraform/modules/compute/"
               ls -al terraform/modules/compute/
