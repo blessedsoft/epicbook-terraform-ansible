@@ -20,16 +20,11 @@ stages:
           # --------------------------------------------------------------------
           # Step 1: Setup Terraform Backend (non-interactive)
           # --------------------------------------------------------------------
-          - task: AzureCLI@2
-            inputs:
-              azureSubscription: 'it-azure-connection'  # service connection
-              scriptType: bash
-              scriptLocation: inlineScript
-              workingDirectory: $(System.DefaultWorkingDirectory)
-              inlineScript: |
-                echo "Running Terraform backend setup..."
-                chmod +x setup-tf-backend.sh
-                ./setup-tf-backend.sh
+          - script: |
+              echo "Running Terraform backend setup..."
+              chmod +x setup-tf-backend.sh
+              ./setup-tf-backend.sh --non-interactive
+            workingDirectory: $(System.DefaultWorkingDirectory)
             displayName: 'Setup Terraform Backend'
 
           # --------------------------------------------------------------------
@@ -45,7 +40,8 @@ stages:
               mkdir -p ~/.ssh
               cp $(download_ssh_key.secureFilePath) ~/.ssh/azure_rsa.pub
 
-              # Copy into Terraform module path
+              # Ensure module folder exists
+              mkdir -p terraform/modules/compute
               cp $(download_ssh_key.secureFilePath) terraform/modules/compute/azure_rsa.pub
 
               echo "Listing contents of terraform/modules/compute/"
@@ -57,7 +53,7 @@ stages:
           # --------------------------------------------------------------------
           - task: AzureCLI@2
             inputs:
-              azureSubscription: 'it-azure-connection'  # service connection
+              azureSubscription: 'it-azure-connection'
               scriptType: bash
               scriptLocation: inlineScript
               workingDirectory: $(System.DefaultWorkingDirectory)/terraform
@@ -67,7 +63,6 @@ stages:
                 terraform plan -input=false -var-file="envs/dev.tfvars"
                 terraform apply -input=false -auto-approve -var-file="envs/dev.tfvars"
                 echo "##[endgroup]"
-            displayName: 'Terraform Apply'
 
           # --------------------------------------------------------------------
           # Step 4: Output VM public IP for downstream pipelines
