@@ -62,13 +62,18 @@ stages:
                 terraform apply -input=false -auto-approve -var-file="env/dev.tfvars"
                 echo "##[endgroup]"
 
-          # --------------------------------------------------------------------
-          # Step 4: Output VM public IP for downstream pipelines
+           # --------------------------------------------------------------------
+          # Step 4: Output VM public IP and DB host for downstream pipelines
           # --------------------------------------------------------------------
           - script: |
               echo "Getting VM public IP from Terraform output..."
-              VM_PUBLIC_IP=$(terraform output -raw vm_public_ip)
+              VM_PUBLIC_IP=$(terraform output -raw app_public_ip)
               echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_PUBLIC_IP"
               echo "VM Public IP: $VM_PUBLIC_IP"
-            workingDirectory: $(System.DefaultWorkingDirectory)
-            displayName: 'VM Public IP'
+
+              echo "Getting DB host from Terraform output..."
+              DB_HOST=$(terraform output -raw db_host)
+              echo "##vso[task.setvariable variable=db_host;isOutput=true]$DB_HOST"
+              echo "DB Host: $DB_HOST"
+            workingDirectory: $(System.DefaultWorkingDirectory)/terraform
+            displayName: 'VM Public IP and DB Host'
