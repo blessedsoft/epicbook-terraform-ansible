@@ -56,7 +56,7 @@ stages:
               azureSubscription: 'it-azure-connection'
               scriptType: bash
               scriptLocation: inlineScript
-              workingDirectory: $(System.DefaultWorkingDirectory)/terraform
+              workingDirectory: $(System.DefaultWorkingDirectory)
               inlineScript: |
                 echo "##[group]Terraform Init / Plan / Apply"
                 terraform init -input=false
